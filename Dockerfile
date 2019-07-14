@@ -1,6 +1,8 @@
 FROM ubuntu:18.04
 MAINTAINER a_mma
 
+ADD ./ ./AquilaDB
+
 # install couchdb
 RUN apt-get update; apt-get install -y curl; apt-get install -y --no-install-recommends git; \
 	echo "deb https://apache.bintray.com/couchdb-deb bionic main" \
@@ -12,7 +14,7 @@ RUN apt-get update; apt-get install -y curl; apt-get install -y --no-install-rec
 	apt-get purge -y --auto-remove gnupg; \
 #
 #	clone repository
-	git clone https://github.com/a-mma/AquilaDB.git; \
+#	git clone https://github.com/a-mma/AquilaDB.git; \
 #
 #   setup node environment
 	curl -sL https://deb.nodesource.com/setup_10.x | bash -; \

@@ -33,7 +33,7 @@ message addDocResponse {
 }
 
 message deleteDocRequest {
-    repeated singleDocType documents = 1;
+    repeated string _id = 1;
 }
 
 message deleteDocResponse {

@@ -71,9 +71,9 @@ server.addService(proto.vecdb.VecdbService.service, {
     },
     // delete existing docs from local DB and wait for eventual consistancy
     deleteDocuments(call, callback) {
-        var documents = call.request.documents
+        var ids = call.request._id
         
-        documentUtil.delete(documents, (err, resp) => {
+        documentUtil.delete(ids, (err, resp) => {
             if (!err) {
                 callback (null, { status: true, _id: resp._id })
             }

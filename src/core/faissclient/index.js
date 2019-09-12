@@ -266,62 +266,55 @@ function addToAnnoy(new_matrix, vec_id, cbk) {
 
 module.exports = {
     // add a new vector to faiss db
-    addNewVector (r_times, doc_id, new_matrix) {
-        // check if the document is fresh or not (new doc id)
-        if (r_times !== '1') {
-            // not fresh
-            console.log('Document with id: ' + doc_id + ' is not fresh!')
-        }
-        else {
-            // only add to faiss if document is fresh
-            getVecId((err, vec_id) => {
-                if (!err) {
-                    mapVecDocId (doc_id, vec_id, (err) => {
-                        if(!err) {
-                            var init_config = __g__vDBConfig.faiss.init
-                            
-                            // check if vector count reached trainable min. requirement
-                            if (vec_id > FAISS_MIN_LIMIT) {
-                                addToFaiss(new_matrix, vec_id, (err, resp) => {
-                                    if (!err) {
-                                        console.log('Added vectors to FAISS')
-                                    }
-                                    else {
-                                        console.log('Error adding vectors to FAISS', err, resp)
-                                    } 
-                                })    
-                            }
-                            // check if vector count reached trainable min. requirement
-                            else if (vec_id >= init_config.vecount) {
-                                if (vec_id === init_config.vecount) {
-                                    // copy initial vectors collected so far for annoy initialization
-                                    annoyTempVecStore = faissTempVecStore
+    addNewVector (doc_id, new_matrix) {
+        // only add to faiss if document is fresh
+        getVecId((err, vec_id) => {
+            if (!err) {
+                mapVecDocId (doc_id, vec_id, (err) => {
+                    if(!err) {
+                        var init_config = __g__vDBConfig.faiss.init
+                        
+                        // check if vector count reached trainable min. requirement
+                        if (vec_id > FAISS_MIN_LIMIT) {
+                            addToFaiss(new_matrix, vec_id, (err, resp) => {
+                                if (!err) {
+                                    console.log('Added vectors to FAISS')
                                 }
-
-                                addToAnnoy(new_matrix, vec_id, (err, resp) => {
-                                    if (!err) {
-                                        console.log('Added vectors to Annoy')
-                                    }
-                                    else {
-                                        console.log('Error adding vectors to Annoy', err, resp)
-                                    } 
-                                })  
-
-                                // keep vector to be added in memory
-                                faissTempVecStore.push({m: new_matrix, i: vec_id})  
-                            }
-                            else {
-                                // keep vector to be added in memory
-                                faissTempVecStore.push({m: new_matrix, i: vec_id})
-                            }
+                                else {
+                                    console.log('Error adding vectors to FAISS', err, resp)
+                                } 
+                            })    
                         }
-                    })
-                }
-                else {
-                    console.log("Can't get vec ID")
-                }
-            })  
-        }  
+                        // check if vector count reached trainable min. requirement
+                        else if (vec_id >= init_config.vecount) {
+                            if (vec_id === init_config.vecount) {
+                                // copy initial vectors collected so far for annoy initialization
+                                annoyTempVecStore = faissTempVecStore
+                            }
+
+                            addToAnnoy(new_matrix, vec_id, (err, resp) => {
+                                if (!err) {
+                                    console.log('Added vectors to Annoy')
+                                }
+                                else {
+                                    console.log('Error adding vectors to Annoy', err, resp)
+                                } 
+                            })  
+
+                            // keep vector to be added in memory
+                            faissTempVecStore.push({m: new_matrix, i: vec_id})  
+                        }
+                        else {
+                            // keep vector to be added in memory
+                            faissTempVecStore.push({m: new_matrix, i: vec_id})
+                        }
+                    }
+                })
+            }
+            else {
+                console.log("Can't get vec ID")
+            }
+        })
     },
     getKNN(k, matrix, cbk){
         var faiss_search_data = {
@@ -383,5 +376,22 @@ module.exports = {
                 cbk (err, null)
             }
         })
+    },
+    // delete a vector from faiss db
+    removeVector (doc_id) {
+        console.log('To remove: ', doc_id)
+        // map doc id to faiss id
+        var mdb = __g__PDBs.mapperDB
+        utils.getIDMap(mdb, doc_id, (doc) => {
+            // remove vector
+            var faissDeleteData = {
+                _id: [doc.val]
+            }
+            faissRPC.deleteVectors(faissDeleteData, (err, resp) => {
+                if (err) {
+                    console.log('error deleting item from vector index', err)
+                }
+            })
+        })  
     }
 }

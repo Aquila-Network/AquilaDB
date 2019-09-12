@@ -63,6 +63,16 @@ module.exports = {
             }
         })
     },
+    getIDMap: function (mdb, id_in, cbk) {
+        mdb.get(id_in, (err, doc) => {
+            if(!err) {
+                cbk(doc)
+            }
+            else {
+                cbk(null)
+            }
+        })
+    },
     getVecID: function (cbk) {
         // make sure id is in sync with DB
         if (_vec_ID !== null) {

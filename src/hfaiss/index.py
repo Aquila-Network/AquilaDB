@@ -79,7 +79,7 @@ class Faiss:
         return True, ids
 
     def deleteVectors(self, ids):
-
+        print('in faiss delete')
         return True, ids
 
     def getNearest(self, matrix, k):

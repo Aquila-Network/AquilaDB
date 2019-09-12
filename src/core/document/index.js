@@ -72,26 +72,12 @@ module.exports = {
             }
         })
     },
-    delete (documents, cbk) {
-        var doclength = documents.length
+    delete (documentIds, cbk) {
+        var doclength = documentIds.length
         var itrcnt = 0
         var id_list = []
-        documents.forEach((document) => {
-            // get vector
-            var vector = {}
-            if (document.vector && document.vector.e) {
-                vector = document.vector.e
-            }
-            // get document ID
-            var _id = null
-            if (document._id) {
-                _id = document._id
-            }
-            else {
-                // generate ID from vector
-                _id = crypto.createHash('md5').update(JSON.stringify(vector)).digest('hex')
-            }
-
+        documentIds.forEach((_id) => {
+            // find and delete docs
             var db = __g__PDBs.documentsDB
             db.get(_id, (err, doc) => {
                 if(!err) {
@@ -102,7 +88,7 @@ module.exports = {
                             console.log('remove is success')
                             itrcnt ++
                             if (itrcnt === doclength) {
-                                cbk (null, {_id:id_list})
+                                cbk (null, {_id: id_list})
                             }
                         }
                         else {
@@ -110,7 +96,7 @@ module.exports = {
                             console.log('remove is unsuccess', err)
                             itrcnt ++
                             if (itrcnt === doclength) {
-                                cbk (null, {_id:id_list})
+                                cbk (null, {_id: id_list})
                             }
                         }
                     })
@@ -122,7 +108,7 @@ module.exports = {
                         console.log('nothing to remove')
                         itrcnt ++
                         if (itrcnt === doclength) {
-                            cbk (null, {_id:id_list})
+                            cbk (null, {_id: id_list})
                         }
                     }
                     else {
@@ -130,7 +116,7 @@ module.exports = {
                         console.log('failed to remove', err)
                         itrcnt ++
                         if (itrcnt === doclength) {
-                            cbk (null, {_id:id_list})
+                            cbk (null, {_id: id_list})
                         }
                     }
                 }

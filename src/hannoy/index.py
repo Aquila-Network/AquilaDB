@@ -11,6 +11,7 @@ class Annoy:
         # this is to keep track of all vectors inserted
         # for saving into disk and retrieve later
         self.index_disk = None
+        self.a_index = None
         try:
             with open('DB_config.yml', 'r') as stream:
                 DB_config = yaml.safe_load(stream)
@@ -70,8 +71,27 @@ class Annoy:
         return self.modelLoaded, ids
 
     def deleteVectors(self, ids):
+        # unbuild index first 
+        self.a_index.unbuild()
+        # set existing vector in the index to zeros
 
-        return True, ids
+        index_ = []
+        ids_ = self.index_disk[:,-1].tolist()
+        for id_ in ids:
+            # add vector
+            vector_ = np.zeros((self.dim,), dtype=float)
+            self.a_index.add_item(int(id_), vector_.tolist())
+            # collect index to be removed
+            if id_ in ids_:
+                index_.append(ids_.index(id_))
+
+        # remove item from disk index
+        self.index_disk = np.delete(self.index_disk, index_)
+        # build vector
+        build_ = self.a_index.build(self.n_trees)
+        if build_:
+            self.modelLoaded = self.saveModelToDisk()
+        return self.modelLoaded, ids
 
     def getNearest(self, matrix, k):
         ids = []
@@ -84,8 +104,29 @@ class Annoy:
 
         return True, ids, dists
 
+    def reindex(self):
+        try:
+            # unload old index
+            if self.a_index:
+                self.a_index.unload()
+            # prepare new index
+            self.a_index = AnnoyIndex(self.dim, self.sim_metric)
+            # build Annoy Index
+            for vec_ in self.index_disk.tolist():
+                self.a_index.add_item(int(vec_[-1]), vec_[0:-1])
+            # build index
+            build_ = self.a_index.build(self.n_trees)
+            print('Annoy reindexing success')
+            return True
+        except Exception as e: 
+            print('Annoy reindexing failed')
+            return False
+
     def loadModelFromDisk(self):
         try:
+            # unload old index
+            if self.a_index:
+                self.a_index.unload()
             # prepare new index
             self.a_index = AnnoyIndex(self.dim, self.sim_metric)
             # read index

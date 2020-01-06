@@ -7,7 +7,7 @@
 
 [![Build Status](https://img.shields.io/travis/a-mma/AquilaDB/develop?label=CI%20Tests&logo=travis)](https://travis-ci.org/a-mma/AquilaDB)
 
-Do you like this project? We love getting a ⭐ from you in return! 🤗
+Do you like this project? We love getting a **star** ⭐ and **shout-out** 🗣️from you in return! 🤗
 
 [Community support: ![discord chatroom for discussions](https://www.freeiconspng.com/minicovers/flat-discord-material-like-icon--2.png)](https://discord.gg/5YP7zHS)
 

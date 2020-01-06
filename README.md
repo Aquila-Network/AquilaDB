@@ -91,6 +91,6 @@ As of current AquilaDB release features, you can build **[Neural Information Ret
 
 # License
 
-GNU General Public License v3.0 [license file](https://github.com/a-mma/AquilaDB/blob/master/LICENSE)
+Apache License 2.0 [license file](https://github.com/a-mma/AquilaDB/blob/master/LICENSE)
 
 created with ❤️ a-mma.indic (a_മ്മ)

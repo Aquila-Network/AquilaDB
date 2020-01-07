@@ -1,4 +1,5 @@
 import logging
+logging.basicConfig(level=logging.ERROR)
 
 import numpy as np
 import faiss
@@ -54,9 +55,9 @@ class Faiss:
         logging.debug('FAISS init IndexIVFPQ index')
         self.f_index = faiss.IndexIVFPQ(self.f_quantizer, self.dim, self.nlist, self.bytesPerVec, self.bytesPerSubVec)
         if self.f_index:
-            logging.debug('FAISS init IndexIVFPQ quantizer success')
+            logging.debug('FAISS init IndexIVFPQ index success')
         else:
-            logging.error('FAISS init IndexIVFPQ quantizer failed')
+            logging.error('FAISS init IndexIVFPQ index failed')
 
         # set model location
         self.model_location = '/data/model_hf_' + self.index_name
@@ -72,13 +73,15 @@ class Faiss:
             logging.debug('Index is not loaded from disk. Reverted to random initialization')
 
             # create a random matrix
-            # self.train_data = np.matrix(matrix).astype('float32') # ref. for training actual data from python array
+            # self.train_data = np.asarray(matrix).astype('float32') # ref. for training actual data from python array
             np.random.seed(self.pq_random_seed)
             self.train_data = np.random.random((self.pq_row_count, self.dim)).astype('float32')
 
             # train index
             logging.debug('Index training started')
             training_status = self.trainFaiss()
+            # update model initialization status
+            self.is_initiated = training_status
             if training_status:
                 logging.debug('Index training complete')
             else:
@@ -138,13 +141,13 @@ class Faiss:
         ret = False
 
         # create training data
-        self.train_data = self.train_disk_data[:, :-1]
+        self.train_data = self.train_disk_data[:, :-1].astype('float32')
 
         # train
         ret = self.trainFaiss()
 
         # write data
-        ret = self.writeVectorsToIndex(self.train_data, self.train_disk_data[:, -1:].astype('int'))
+        ret = self.writeVectorsToIndex(self.train_data, self.train_disk_data[:, -1:].astype('int').flatten())
 
         return ret
 
@@ -152,6 +155,16 @@ class Faiss:
         """Return True if index is already initialized"""
 
         return self.is_initiated
+
+    def isTrained(self):
+        """Return True if index is already trained"""
+
+        return self.f_index.is_trained
+
+    def getTotalItems(self):
+        """Return number of items in faiss index"""
+
+        return self.f_index.ntotal
 
 
     def getIndexName(self):
@@ -171,8 +184,8 @@ class Faiss:
             logging.debug('FAISS index disk loading success')
             ret = True
         except Exception as e: 
-            logging.error('FAISS index disk loading failed')
-            logging.error(e)
+            logging.warning('FAISS index disk loading failed')
+            logging.warning(e)
             ret = False
 
         if not self.skip_disk_data:
@@ -182,8 +195,8 @@ class Faiss:
                 logging.debug('FAISS training data disk loading success')
                 ret = True
             except Exception as e: 
-                logging.error('FAISS training data disk loading failed')
-                logging.error(e)
+                logging.warning('FAISS training data disk loading failed')
+                logging.warning(e)
                 ret = False
         
         return ret
@@ -204,7 +217,7 @@ class Faiss:
             logging.error(e)
             ret = False
         
-        if not self.skip_disk_data:
+        if (not self.skip_disk_data) and (self.train_disk_data is not None):
             try:
                 # write data
                 np.save(self.train_disk_location, self.train_disk_data)
@@ -223,7 +236,7 @@ class Faiss:
 
         ids = []
 
-        logging.debug('Adding ' + len(documents) + ' documents to process queue')
+        logging.debug('Adding ' + str(len(documents)) + ' documents to process queue')
         # add vectors
         for document in documents:
             # add documents to the queue (Asynchronous)
@@ -257,13 +270,13 @@ class Faiss:
                     vecs.append(vec.e)
 
                 # convert to np matrix
-                vec_data = np.matrix(vecs).astype('float32')
-                id_data = np.array(ids).astype('int')
+                vec_data = np.asarray(vecs).astype('float32')
+                id_data = np.asarray(ids).astype('int')
                 # resize input matrix according to vector dimension config.
                 vec_data = self.resizeForDimension(vec_data)
 
                 # keep a copy for disk storage
-                disk_list = np.column_stack((vec_data, id_data))
+                disk_list = np.column_stack((vec_data, id_data)).astype('float32')
 
                 if not self.skip_disk_data:
                     # append to disk proxy
@@ -310,7 +323,7 @@ class Faiss:
         """Perform kNN search on FAISS index"""
 
         # convert to np matrix
-        vec_data = np.matrix(matrix).astype('float32')
+        vec_data = np.asarray(matrix).astype('float32')
         # resize input matrix according to vector dimension config.
         vec_data = self.resizeForDimension(vec_data)
         
@@ -321,15 +334,17 @@ class Faiss:
 
 
     def resizeForDimension(self, matrix_in):
+        dtype_ = matrix_in.dtype
+
         # how much padding is remaining
         rem = self.dim - matrix_in.shape[1]
 
         # return itself if no padding is required
         if rem is 0:
-            return matrix_in
+            return matrix_in.astype(dtype_)
         # padd zeroes if needed
         elif rem > 0:
-            return np.pad(matrix_in, ( (0,0), (0,rem) ), 'constant')
+            return np.pad(matrix_in, ( (0,0), (0,rem) ), 'constant').astype(dtype_)
         # truncate if needed
         else:
-            return matrix_in[ : , : self.dim]
+            return matrix_in[ : , : self.dim].astype(dtype_)
